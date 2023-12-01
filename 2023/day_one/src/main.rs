@@ -28,10 +28,6 @@ fn part_one() {
     println!("part one: {}", total);
 }
 
-const NUMBER_TABLE: [&str; 9] = [
-    "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
-];
-
 fn to_digit(str: &str) -> Option<char> {
     match str {
         "one" => Some('1'),
