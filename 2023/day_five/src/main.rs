@@ -59,6 +59,9 @@ fn two() {
         .map(|s| s.parse::<usize>().unwrap())
         .collect::<Vec<_>>();
     let mut seeds = Vec::new();
+    // todo: The optimisation should happen here, it's a data structure fix. I.e we store the range
+    // not the raw values, we can then use the range overlaps with the range conversion tables to
+    // quickly generate the right number of seeds
     for seed_pair in found_seeds.chunks(2) {
         let start = seed_pair.first().unwrap().to_owned();
         let range = seed_pair.last().unwrap().to_owned();
