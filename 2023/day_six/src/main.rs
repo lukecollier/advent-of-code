@@ -31,7 +31,7 @@ fn one() {
         }
         acc = acc.map_or_else(|| Some(valid_ways), |value| Some(value * valid_ways));
     }
-    println!("puzzle one part one: {}", &acc.unwrap())
+    println!("part one: {}", &acc.unwrap())
 }
 
 fn two() {
@@ -62,5 +62,5 @@ fn two() {
         }
     }
     acc = acc.map_or_else(|| Some(valid_ways), |value| Some(value * valid_ways));
-    println!("puzzle one part two: {}", &acc.unwrap())
+    println!("part two: {}", &acc.unwrap())
 }
