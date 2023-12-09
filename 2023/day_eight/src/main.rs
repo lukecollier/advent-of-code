@@ -50,7 +50,7 @@ fn two() {
     lines.next();
     let mut currently_on: Vec<&str> = Vec::new();
     let mut world: HashMap<&str, (&str, &str)> = HashMap::new();
-    // find all our starting positions
+    // find all our starting positions and build the world
     for line in lines {
         let mut splits = line.split_ascii_whitespace();
         let current = splits.next().unwrap();
@@ -66,10 +66,6 @@ fn two() {
         world.insert(current, (left, right));
     }
 
-    // I think the trick is to find each time they encounter the ending Z, then using lcd or gcd we
-    // figure out how many more steps it would take us to find what we're after
-
-    // let mut steps_taken: Vec<HashSet<usize>> = Vec::with_capacity(currently_on.len());
     let mut lcm: Option<usize> = None;
     for idx in 0..currently_on.len() {
         let mut steps = Vec::new();
@@ -91,15 +87,7 @@ fn two() {
             } else {
                 steps.push(candidate);
             }
-            // now we just find the steps taken for all the z values (via index)
-            //
-            // then find the minimum least common multiple between this and the next loop wooww
-
-            // if &cur[cur.len() - 1..cur.len()] == "Z" {
-            //     break;
-            // }
         }
-        // dbg!(steps.iter().enumerate().collect::<Vec<_>>());
         for (idx, (cur, _)) in steps.iter().enumerate() {
             if &cur[cur.len() - 1..cur.len()] == "Z" {
                 lcm = Some(lcm.get_or_insert(idx).lcm(&idx));
