@@ -1,11 +1,11 @@
 use num::Integer;
-use std::{collections::HashSet, rc::Rc, time::Instant};
+use std::{rc::Rc, time::Instant};
 
 const PUZZLE_INPUT: &str = include_str!("./input.txt");
 
 fn main() {
-    // one();
-    two_numbery();
+    one();
+    two();
 }
 
 fn one() {
@@ -42,77 +42,11 @@ fn one() {
     println!("part one: {}", &steps);
 }
 
-struct Node<'a> {
-    label: &'a str,
-    left: Option<Rc<Node<'a>>>,
-    right: Option<Rc<Node<'a>>>,
-}
-
-impl<'a> Node<'a> {
-    fn new(label: &'a str) -> Self {
-        Node {
-            label,
-            left: None,
-            right: None,
-        }
-    }
-
-    fn insert_left(&mut self) {
-        self.left = None;
-    }
-    fn insert_right(&mut self) {
-        self.right = None;
-    }
-}
-
-fn two_naive() {
+fn two() {
     use std::collections::HashMap;
 
     let mut lines = PUZZLE_INPUT.lines();
-    let mut directions = std::iter::repeat(lines.next().unwrap().chars()).flatten();
-    lines.next();
-    let mut currently_on: Vec<&str> = Vec::new();
-    let mut world: HashMap<&str, (&str, &str)> = HashMap::new();
-    let mut steps = 0;
-    // find all our starting positions
-    for line in lines {
-        let mut splits = line.split_ascii_whitespace();
-        let current = splits.next().unwrap();
-        let current_end = &current.chars().last().unwrap();
-        splits.next();
-        let left_raw = splits.next().unwrap();
-        let right_raw = splits.next().unwrap();
-        let left = &left_raw[1..left_raw.len() - 1];
-        let right = &right_raw[0..left_raw.len() - 2];
-        if current_end == &'A' {
-            currently_on.push(current);
-        }
-        world.insert(current, (left, right));
-    }
-
-    while !(&currently_on).into_iter().fold(true, |acc, str| {
-        acc && &str[str.len() - 1..str.len()] == "Z"
-    }) {
-        let direction = directions.next().unwrap();
-        steps += 1;
-        for idx in 0..currently_on.len() {
-            let (left, right) = world.get(currently_on[idx]).unwrap();
-            if direction == 'L' {
-                currently_on[idx] = left;
-            } else if direction == 'R' {
-                currently_on[idx] = right;
-            }
-        }
-        println!("took ({}) currently on: {:?}", &direction, &currently_on);
-    }
-    println!("part two: {}", steps);
-}
-
-fn two_numbery() {
-    use std::collections::HashMap;
-
-    let mut lines = PUZZLE_INPUT.lines();
-    let mut directions = std::iter::repeat(lines.next().unwrap().char_indices()).flatten();
+    let directions = std::iter::repeat(lines.next().unwrap().char_indices()).flatten();
     lines.next();
     let mut currently_on: Vec<&str> = Vec::new();
     let mut world: HashMap<&str, (&str, &str)> = HashMap::new();
