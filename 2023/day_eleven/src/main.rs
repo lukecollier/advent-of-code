@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 const PUZZLE_INPUT: &str = include_str!("./input.txt");
-const ONE_MILLION: usize = 1;
+const ONE_MILLION: usize = 1000000;
 
 fn main() {
     println!("problem one: {}", one());
@@ -84,7 +84,7 @@ fn two() -> usize {
     let mut y_offset = 0;
     for (y, line) in PUZZLE_INPUT.lines().enumerate() {
         if line.chars().all(|char| char == '.') {
-            y_offset += ONE_MILLION;
+            y_offset += ONE_MILLION - 1;
         }
         let mut row: Vec<usize> = Vec::with_capacity(line.len());
         for (x, char) in line.char_indices() {
@@ -114,23 +114,22 @@ fn two() -> usize {
             columns_to_duplicate.push(x);
         }
     }
+
     for idx in 0..galaxies.len() {
         let x = galaxies[idx].0 .0;
-        let y = galaxies[idx].0 .1;
         let x_offset = columns_to_duplicate
             .clone()
             .into_iter()
             .filter(|threshold| threshold < &x)
             .count()
-            * ONE_MILLION;
+            * (ONE_MILLION - 1);
         galaxies[idx].0 .0 += x_offset;
     }
     // A map of the node node_id -> node_id -> distancce
-    let mut edges: HashSet<(usize, usize)> = HashSet::with_capacity(galaxy_id * galaxy_id);
+    let mut edges: HashSet<(usize, usize)> = HashSet::new();
     let mut distance_sum = 0;
     for ((x_from, y_from), from) in &galaxies {
         for ((x_to, y_to), to) in &galaxies {
-            dbg!(x_from, x_to);
             let key = (*from.min(to), *from.max(to));
             if (x_from, y_from) != (x_to, y_to) && !edges.contains(&key) {
                 let distance = x_from.abs_diff(*x_to) + y_from.abs_diff(*y_to);
@@ -139,5 +138,5 @@ fn two() -> usize {
             }
         }
     }
-    distance_sum
+    distance_sum // for some reason we're missing some value from somewhere looool
 }
