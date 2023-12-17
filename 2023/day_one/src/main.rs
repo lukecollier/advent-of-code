@@ -18,7 +18,6 @@ fn part_one() {
                 }
             })
             .collect();
-        //inefficient :(
         let mut first = ascii_digits.first().unwrap().to_string();
         let last = ascii_digits.last().unwrap();
         first.push(*last);
@@ -77,7 +76,6 @@ fn part_two() {
                 }
             })
             .collect();
-        //inefficient :(
         let mut first = ascii_digits.first().unwrap().to_string();
         let last = ascii_digits.last().unwrap();
         first.push(*last);
