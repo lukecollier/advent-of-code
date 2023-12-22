@@ -1,4 +1,6 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+
+use itertools::Itertools;
 
 const PUZZLE_INPUT: &str = include_str!("./input.txt");
 
@@ -7,68 +9,82 @@ fn main() {
 }
 
 fn one(puzzle_input: &str) -> usize {
-    let mut possibilities: Vec<String> = Vec::with_capacity(100000);
     for (line, diagnostics_str) in puzzle_input
         .lines()
         .map(|line| line.split_once(' ').unwrap())
     {
-        let wildcards_amount = line
-            .chars()
-            .fold(0, |acc, ch| if ch == '?' { acc + 1 } else { acc });
-        let combinations = wildcards_amount * 2;
-        dbg!(wildcards_amount, combinations);
+        let characters = vec!["#", "."];
+        let diagnostics = diagnostics_str
+            .split(",")
+            .map(|diagnostic| diagnostic.parse::<usize>().unwrap())
+            .collect_vec();
+        let groups = line
+            .split(".")
+            .filter(|str| !str.is_empty())
+            .map(|group| {
+                // taken from https://stackoverflow.com/a/67746758
+                let n = group.len(); // The number of combinations
+
+                let combinations: Vec<String> = (2..n).fold(
+                    characters
+                        .iter()
+                        .map(|c| characters.iter().map(move |&d| d.to_owned() + *c))
+                        .flatten()
+                        .collect(),
+                    |acc, _| {
+                        acc.into_iter()
+                            .map(|c| characters.iter().map(move |&d| d.to_owned() + &*c))
+                            .flatten()
+                            .collect()
+                    },
+                );
+                // re-inster the known broken gears
+                let hash_found = group.chars().positions(|el| el == '#').collect_vec();
+                if !hash_found.is_empty() {
+                    let mut restored = HashSet::new();
+                    for mut combination in combinations {
+                        for pos in &hash_found {
+                            combination.replace_range(pos..=pos, "#");
+                        }
+                        restored.insert(combination);
+                    }
+                    restored
+                } else {
+                    combinations.into_iter().collect::<HashSet<_>>()
+                }
+            })
+            .collect_vec();
+        let mut paths: Vec<Vec<Vec<usize>>> = Vec::with_capacity(diagnostics.len());
+        for group in groups {
+            println!("group");
+            let mut possibilities: Vec<Vec<usize>> = Vec::with_capacity(line.len());
+            for line in group {
+                let mut outcome: Vec<usize> = Vec::with_capacity(line.len());
+                let mut last_character = ' ';
+                for ch in line.chars() {
+                    let last = outcome.last_mut();
+                    if ch == last_character && last.is_some() && ch == '#' {
+                        *outcome.last_mut().unwrap() += 1;
+                    } else if ch == '#' {
+                        outcome.push(1);
+                    }
+                    last_character = ch;
+                }
+                if !outcome.is_empty() {
+                    possibilities.push(outcome);
+                }
+                // for out in &outcome {}
+            }
+            dbg!(&possibilities);
+            paths.push(possibilities);
+        }
+        let t = (0..paths.len())
+            .map(|id| paths[id..paths.len()].iter().collect_vec())
+            .collect_vec();
     }
 
     0
 }
-
-// fn one(puzzle_input: &str) -> usize {
-//     let mut combinations = 0;
-//     for (springs_str, diagnostics_str) in puzzle_input
-//         .lines()
-//         .map(|line| line.split_once(' ').unwrap())
-//     {
-//         let diagnostics = diagnostics_str
-//             .split(',')
-//             .map(|diagnostic| diagnostic.parse::<usize>().unwrap())
-//             .collect::<Vec<_>>();
-
-//         let end_start_bonus = 2;
-//         let min_chars_needed: usize =
-//             diagnostics.iter().sum::<usize>() + (diagnostics.iter().count() - end_start_bonus);
-//         let mut start = 0;
-//         while start <= springs_str.len() - min_chars_needed {
-//             let mut diagnostics_iter = diagnostics.iter();
-//             let mut diagnostic_opt = diagnostics_iter.next();
-//             let mut pos = start;
-//             while let Some(diagnostic) = diagnostic_opt {
-//                 if let Some(current) = &springs_str.get(pos..pos + diagnostic) {
-//                     let end = springs_str
-//                         .get(pos + diagnostic..pos + diagnostic + 1)
-//                         .unwrap_or(".");
-//                     if !current.contains('.') && end == "." {
-//                         diagnostic_opt = diagnostics_iter.next();
-//                         pos += diagnostic;
-//                     } else if !current.contains('.') && end != "." {
-//                         // we need to skip + count the unique combinations when we reach a block of ?
-//                         diagnostic_opt = diagnostics_iter.next();
-//                         pos += diagnostic + 1;
-//                     } else {
-//                         pos += 1;
-//                     }
-//                 } else {
-//                     break;
-//                 }
-//             }
-//             if diagnostic_opt.is_none() {
-//                 combinations += 1;
-//                 break;
-//             }
-//             start += 1;
-//         }
-//     }
-//     combinations
-// }
 
 fn two(puzzle_input: &str) -> usize {
     let mut combinations = 0;

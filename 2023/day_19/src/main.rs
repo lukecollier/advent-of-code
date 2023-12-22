@@ -25,37 +25,37 @@ const MIN: usize = 0;
 impl Workflow {
     fn branches(
         &mut self,
-        instruction: HashMap<char, (usize, usize)>,
+        categories: HashMap<char, (usize, usize)>,
     ) -> Vec<(String, HashMap<char, (usize, usize)>)> {
-        let mut end_instruction = instruction.clone();
+        let mut end_categories = categories.clone();
         let mut branches: Vec<(String, HashMap<char, (usize, usize)>)> =
             Vec::with_capacity(self.rules.len());
         for rule in &self.rules {
-            let mut new_instruction = end_instruction.clone();
+            let mut new_categories = end_categories.clone();
             let goto = rule.goto.to_string();
-            let (lower, upper) = end_instruction.get(&rule.subject).unwrap();
+            let (lower, upper) = end_categories.get(&rule.subject).unwrap();
             match rule.cond {
                 Condition::LessThan(value) => {
                     // upper
-                    new_instruction.get_mut(&rule.subject).unwrap().1 = value.min(*upper);
-                    end_instruction.get_mut(&rule.subject).unwrap().0 = value.max(*lower);
+                    new_categories.get_mut(&rule.subject).unwrap().1 = value.min(*upper);
+                    end_categories.get_mut(&rule.subject).unwrap().0 = value.max(*lower);
                 }
                 Condition::GreaterThan(value) => {
                     // lower
-                    new_instruction.get_mut(&rule.subject).unwrap().0 = value.max(*lower);
-                    end_instruction.get_mut(&rule.subject).unwrap().1 = value.min(*upper);
+                    new_categories.get_mut(&rule.subject).unwrap().0 = value.max(*lower);
+                    end_categories.get_mut(&rule.subject).unwrap().1 = value.min(*upper);
                 }
             }
-            branches.push((goto, new_instruction));
+            branches.push((goto, new_categories));
         }
-        branches.push((self.next.to_string(), end_instruction));
+        branches.push((self.next.to_string(), end_categories));
         branches
     }
 
-    fn run(&self, instruction: &HashMap<String, usize>) -> String {
+    fn run(&self, categories: &HashMap<String, usize>) -> String {
         let mut result: Option<String> = None;
         for rule in &self.rules {
-            match (&rule.cond, instruction.get(&rule.subject.to_string())) {
+            match (&rule.cond, categories.get(&rule.subject.to_string())) {
                 (Condition::LessThan(value), Some(other)) => {
                     if value > other {
                         result = Some(rule.goto.clone());
@@ -123,18 +123,18 @@ fn one(puzzle_input: &str) -> usize {
             };
             workflows.insert(label.to_string(), workflow);
         } else {
-            // parse the instructions
-            let mut instruction = HashMap::with_capacity(4);
+            // parse the categories
+            let mut categories = HashMap::with_capacity(4);
             for assignment in line[1..line.len() - 1].split(',') {
                 let (lhs, rhs) = assignment.split_once('=').unwrap();
-                instruction.insert(lhs.to_string(), rhs.parse::<usize>().unwrap());
+                categories.insert(lhs.to_string(), rhs.parse::<usize>().unwrap());
             }
-            let mut current = workflows.get("in").unwrap().run(&instruction);
+            let mut current = workflows.get("in").unwrap().run(&categories);
             while current != "A" && current != "R" {
-                current = workflows.get(&current).unwrap().run(&instruction);
+                current = workflows.get(&current).unwrap().run(&categories);
             }
             if current == "A" {
-                sum += instruction.iter().map(|(_key, value)| value).sum::<usize>();
+                sum += categories.iter().map(|(_key, value)| value).sum::<usize>();
             }
         }
     }
@@ -184,25 +184,25 @@ fn two(puzzle_input: &str) -> usize {
             workflows.insert(label.to_string(), workflow);
         }
     }
-    let mut instruction: HashMap<char, (usize, usize)> = HashMap::new();
-    instruction.insert('x', (MIN, MAX));
-    instruction.insert('m', (MIN, MAX));
-    instruction.insert('a', (MIN, MAX));
-    instruction.insert('s', (MIN, MAX));
-    let mut branches = workflows.get_mut("in").unwrap().branches(instruction);
+    let mut categories: HashMap<char, (usize, usize)> = HashMap::new();
+    categories.insert('x', (MIN, MAX));
+    categories.insert('m', (MIN, MAX));
+    categories.insert('a', (MIN, MAX));
+    categories.insert('s', (MIN, MAX));
+    let mut branches = workflows.get_mut("in").unwrap().branches(categories);
     while branches.len() > 0 {
         let mut next_branches: Vec<(String, HashMap<char, (usize, usize)>)> = Vec::new();
-        for (branch, branch_instruction) in branches {
+        for (branch, branch_categories) in branches {
             if branch == "R".to_string() {
             } else if branch == "A".to_string() {
-                combinations += branch_instruction
+                combinations += branch_categories
                     .iter()
                     .fold(1, |acc, (_key, (min, max))| acc * min.abs_diff(*max));
             } else {
                 let mut found_branches = workflows
                     .get_mut(&branch)
                     .unwrap()
-                    .branches(branch_instruction);
+                    .branches(branch_categories);
                 next_branches.append(&mut found_branches);
             }
         }
