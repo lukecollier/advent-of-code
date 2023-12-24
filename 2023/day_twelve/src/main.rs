@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use itertools::Itertools;
+use itertools::{iproduct, Itertools};
 
 const PUZZLE_INPUT: &str = include_str!("./input.txt");
 
@@ -9,6 +9,7 @@ fn main() {
 }
 
 fn one(puzzle_input: &str) -> usize {
+    let mut found = 0;
     for (line, diagnostics_str) in puzzle_input
         .lines()
         .map(|line| line.split_once(' ').unwrap())
@@ -56,7 +57,6 @@ fn one(puzzle_input: &str) -> usize {
             .collect_vec();
         let mut paths: Vec<Vec<Vec<usize>>> = Vec::with_capacity(diagnostics.len());
         for group in groups {
-            println!("group");
             let mut possibilities: Vec<Vec<usize>> = Vec::with_capacity(line.len());
             for line in group {
                 let mut outcome: Vec<usize> = Vec::with_capacity(line.len());
@@ -73,17 +73,46 @@ fn one(puzzle_input: &str) -> usize {
                 if !outcome.is_empty() {
                     possibilities.push(outcome);
                 }
-                // for out in &outcome {}
             }
-            dbg!(&possibilities);
             paths.push(possibilities);
         }
-        let t = (0..paths.len())
-            .map(|id| paths[id..paths.len()].iter().collect_vec())
+        let mut final_paths: Vec<Vec<usize>> =
+            Vec::with_capacity(paths.len() * paths.len() * paths.len());
+        for start_at in 0..paths.len() {
+            if paths[start_at..paths.len()].len() <= diagnostics.len() {
+                let combinations = paths[start_at..paths.len()]
+                    .into_iter()
+                    .multi_cartesian_product()
+                    .collect_vec();
+                for path in combinations {
+                    final_paths.push(
+                        path.into_iter()
+                            .map(|d| d.to_owned())
+                            .flatten()
+                            .collect_vec(),
+                    );
+                }
+            }
+        }
+        let actual_combinations = final_paths
+            .iter()
+            .filter(|paths| paths.len() == diagnostics.len())
+            .filter_map(|paths| {
+                let mut check_iter = paths.iter();
+                for diagnostic in diagnostics.clone() {
+                    if let Some(check) = check_iter.next() {
+                        if diagnostic != *check {
+                            return None;
+                        }
+                    }
+                }
+                Some(paths)
+            })
             .collect_vec();
+        found += actual_combinations.len();
     }
 
-    0
+    found
 }
 
 fn two(puzzle_input: &str) -> usize {

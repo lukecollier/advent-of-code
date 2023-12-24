@@ -46,15 +46,11 @@ fn one(puzzle_input: &str) -> usize {
     let mut high_signals = 0;
     for _ in 1..=1000 {
         let mut targets = vec![("broadcaster", false)];
+        low_signals += 1;
         // println!("button -low-> broadcaster");
         while !targets.is_empty() {
             let mut next: Vec<(&str, bool)> = Vec::with_capacity(1);
             for (key, current_signal) in &targets {
-                if *current_signal {
-                    high_signals += 1;
-                } else {
-                    low_signals += 1;
-                }
                 if let Some(destinations) = world.get_mut(key) {
                     if let Some(signals) = conjunction_signals.get_mut(key) {
                         if signals.len() == 1 {
@@ -117,6 +113,13 @@ fn one(puzzle_input: &str) -> usize {
                                 .collect::<Vec<_>>(),
                         );
                     }
+                }
+            }
+            for (_, signal) in &next {
+                if *signal {
+                    high_signals += 1;
+                } else {
+                    low_signals += 1;
                 }
             }
             targets.clear();
