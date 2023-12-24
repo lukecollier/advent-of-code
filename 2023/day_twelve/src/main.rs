@@ -1,6 +1,6 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
-use itertools::{iproduct, Itertools};
+use itertools::Itertools;
 
 const PUZZLE_INPUT: &str = include_str!("./input.txt");
 
@@ -14,166 +14,45 @@ fn one(puzzle_input: &str) -> usize {
         .lines()
         .map(|line| line.split_once(' ').unwrap())
     {
-        let characters = vec!["#", "."];
         let diagnostics = diagnostics_str
             .split(",")
             .map(|diagnostic| diagnostic.parse::<usize>().unwrap())
             .collect_vec();
-        let groups = line
-            .split(".")
-            .filter(|str| !str.is_empty())
-            .map(|group| {
-                // taken from https://stackoverflow.com/a/67746758
-                let n = group.len(); // The number of combinations
 
-                let combinations: Vec<String> = (2..n).fold(
-                    characters
-                        .iter()
-                        .map(|c| characters.iter().map(move |&d| d.to_owned() + *c))
-                        .flatten()
-                        .collect(),
-                    |acc, _| {
-                        acc.into_iter()
-                            .map(|c| characters.iter().map(move |&d| d.to_owned() + &*c))
-                            .flatten()
-                            .collect()
-                    },
-                );
-                // re-inster the known broken gears
-                let hash_found = group.chars().positions(|el| el == '#').collect_vec();
-                if !hash_found.is_empty() {
-                    let mut restored = HashSet::new();
-                    for mut combination in combinations {
-                        for pos in &hash_found {
-                            combination.replace_range(pos..=pos, "#");
-                        }
-                        restored.insert(combination);
-                    }
-                    restored
-                } else {
-                    combinations.into_iter().collect::<HashSet<_>>()
-                }
+        let diagnostics_sum = diagnostics.iter().sum::<usize>();
+
+        let combination = line
+            .chars()
+            .map(|ch| match ch {
+                '.' => vec!['.'],
+                '?' => vec!['#', '.'],
+                '#' => vec!['#'],
+                _ => todo!(),
+            })
+            .multi_cartesian_product()
+            .map(|str| str.iter().collect::<String>())
+            .filter(|line| {
+                line.chars()
+                    .fold(0, |acc, ch| if ch == '#' { acc + 1 } else { acc })
+                    >= diagnostics_sum
             })
             .collect_vec();
-        let mut paths: Vec<Vec<Vec<usize>>> = Vec::with_capacity(diagnostics.len());
-        for group in groups {
-            let mut possibilities: Vec<Vec<usize>> = Vec::with_capacity(line.len());
-            for line in group {
-                let mut outcome: Vec<usize> = Vec::with_capacity(line.len());
-                let mut last_character = ' ';
-                for ch in line.chars() {
-                    let last = outcome.last_mut();
-                    if ch == last_character && last.is_some() && ch == '#' {
-                        *outcome.last_mut().unwrap() += 1;
-                    } else if ch == '#' {
-                        outcome.push(1);
-                    }
-                    last_character = ch;
+        for subject in combination {
+            let mut counts: Vec<usize> = Vec::with_capacity(subject.len());
+            let mut last_ch = ' ';
+            for ch in subject.chars() {
+                if ch == '#' && last_ch == '#' {
+                    *counts.last_mut().unwrap() += 1;
+                } else if ch == '#' {
+                    counts.push(1);
                 }
-                if !outcome.is_empty() {
-                    possibilities.push(outcome);
-                }
+                last_ch = ch;
             }
-            paths.push(possibilities);
-        }
-        let mut final_paths: Vec<Vec<usize>> =
-            Vec::with_capacity(paths.len() * paths.len() * paths.len());
-        for start_at in 0..paths.len() {
-            if paths[start_at..paths.len()].len() <= diagnostics.len() {
-                let combinations = paths[start_at..paths.len()]
-                    .into_iter()
-                    .multi_cartesian_product()
-                    .collect_vec();
-                for path in combinations {
-                    final_paths.push(
-                        path.into_iter()
-                            .map(|d| d.to_owned())
-                            .flatten()
-                            .collect_vec(),
-                    );
-                }
+            if &diagnostics == &counts {
+                found += 1;
             }
         }
-        let actual_combinations = final_paths
-            .iter()
-            .filter(|paths| paths.len() == diagnostics.len())
-            .filter_map(|paths| {
-                let mut check_iter = paths.iter();
-                for diagnostic in diagnostics.clone() {
-                    if let Some(check) = check_iter.next() {
-                        if diagnostic != *check {
-                            return None;
-                        }
-                    }
-                }
-                Some(paths)
-            })
-            .collect_vec();
-        found += actual_combinations.len();
     }
 
     found
-}
-
-fn two(puzzle_input: &str) -> usize {
-    let mut combinations = 0;
-    for (springs_str, diagnostics_str) in puzzle_input
-        .lines()
-        .map(|line| line.split_once(' ').unwrap())
-    {
-        let diagnostics = diagnostics_str
-            .split(',')
-            .map(|diagnostic| diagnostic.parse::<usize>().unwrap())
-            .collect::<Vec<_>>();
-
-        let clusters = springs_str
-            .split('.')
-            .filter(|split| !split.is_empty())
-            .collect::<Vec<_>>();
-        for start in 0..clusters.len() {
-            let mut diagnostics_iter = diagnostics.iter();
-            let mut diagnostic = diagnostics_iter.next();
-            let mut additional_combinations = 0;
-            for cluster in clusters.iter().skip(start) {
-                let current = diagnostic.unwrap();
-                let mut wildcards = cluster.chars().filter(|char| char == &'?').count();
-                let broken = cluster.len() - wildcards;
-                if current == &(broken + wildcards) {
-                    diagnostic = diagnostics_iter.next();
-                } else if current < &wildcards {
-                    additional_combinations += wildcards / current;
-                    dbg!(additional_combinations, wildcards, current);
-                    while wildcards > 0 {
-                        wildcards = wildcards.checked_sub(current + 1).unwrap_or(0);
-                        diagnostic = diagnostics_iter.next();
-                    }
-                } else if current == &wildcards && broken == 0 {
-                    diagnostic = diagnostics_iter.next();
-                } else if broken + wildcards > *current {
-                    let mut groups: Vec<String> = Vec::with_capacity(cluster.len());
-                    let mut buffer = String::with_capacity(cluster.len());
-                    let mut iter = cluster.chars();
-                    let mut cur = iter.next().unwrap();
-                    for ch in cluster.chars() {
-                        if ch != cur {
-                            groups.push(buffer.clone());
-                            buffer.clear();
-                        }
-                        cur = ch;
-                        buffer.push(ch);
-                    }
-                    groups.push(buffer.clone());
-                    let first = groups.first().unwrap();
-                    let last = groups.last().unwrap();
-                    // now we need to find the first and last, if they're #
-                }
-            }
-            if diagnostic.is_none() {
-                combinations += 1;
-                combinations += additional_combinations;
-                break;
-            }
-        }
-    }
-    combinations
 }
